@@ -15,7 +15,8 @@ Plataforma docente · Mr. Escudero · Escuela Secundaria Federal No. 22 · Cd. J
 
 ## Importante
 - Los datos (alumnos, asistencia, calificaciones, archivos) se guardan **solo en el navegador del equipo** donde usas la app, no en este repositorio.
-- La IA *integrada* (generar sin salir de la app) solo funciona en la versión publicada dentro de Claude. Aquí se usan los botones de Claude y ChatGPT, con tus propias cuentas y sin costo extra.
+- **Generar aquí mismo con Claude:** toca *Conectar Claude* y pega tu clave de API (console.anthropic.com). La clave se guarda **solo en tu dispositivo**, nunca en este repositorio. Se paga por uso desde tu saldo de API.
+- Sin clave, el botón *Generar* abre Claude o ChatGPT con la instrucción lista, con tus cuentas y sin costo extra.
 
 ## Archivos
 | Archivo | Para qué sirve |

@@ -566,6 +566,7 @@ crear(){
           <button type="button" class="btn" data-act="extPaste">Pegar resultado</button>
           <button type="button" class="btn ghost" data-act="extCopy">Copiar instrucción</button>
         </div>
+        ${inClaude?"":`<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:12px"><span class="muted" style="font-size:13px">${sample&&sample.api?"● Claude conectado: el botón Generar crea el material aquí mismo.":"¿Quieres que Generar cree el material aquí mismo, sin salir?"}</span><button type="button" class="btn sm" data-act="apiKey">${sample&&sample.api?"Cambiar clave":"Conectar Claude"}</button></div>`}
       </section>
       <div id="genOut"></div>
     </div>
@@ -702,7 +703,7 @@ function validQuiz(z){
   const qs=z.questions.filter(q=>q&&q.q&&Array.isArray(q.options)&&q.options.length>=2).map(q=>({q:String(q.q),q_es:String(q.q_es||""),options:q.options.slice(0,4).map(String),answer:Math.max(0,Math.min(3,parseInt(q.answer)||0)),explain:String(q.explain||"")}));
   return qs.length? {title:String(z.title||"Examen: "+S.form.tema), instructions:String(z.instructions||""), questions:qs} : null;
 }
-const ERR = {not_granted:"No autorizaste que esta página use Claude. Recarga para volver a intentarlo.",sampling_disabled:"Claude no está disponible para esta cuenta.",rate_limited:"Demasiadas solicitudes seguidas. Espera un momento e intenta de nuevo.",session_expired:"Tu sesión expiró. Vuelve a iniciar sesión.",refused:"Claude no pudo generar este contenido. Cambia el tema o las indicaciones.",empty_completion:"No llegó respuesta. Intenta con indicaciones más cortas.",invalid_json:"El examen llegó con formato incompleto. Intenta de nuevo o pide menos preguntas.",prompt_too_large:"El texto es demasiado largo. Recórtalo.",image_rejected:"No se pudo leer la imagen. Prueba con otra foto (JPG o PNG).",images_unavailable:"Esta vista no admite imágenes; pega el texto."};
+const ERR = {not_granted:"No autorizaste que esta página use Claude. Recarga para volver a intentarlo.",sampling_disabled:"Claude no está disponible para esta cuenta.",rate_limited:"Demasiadas solicitudes seguidas. Espera un momento e intenta de nuevo.",session_expired:"Tu sesión expiró. Vuelve a iniciar sesión.",refused:"Claude no pudo generar este contenido. Cambia el tema o las indicaciones.",empty_completion:"No llegó respuesta. Intenta con indicaciones más cortas.",invalid_json:"El examen llegó con formato incompleto. Intenta de nuevo o pide menos preguntas.",prompt_too_large:"El texto es demasiado largo. Recórtalo.",image_rejected:"No se pudo leer la imagen. Prueba con otra foto (JPG o PNG).",images_unavailable:"Esta vista no admite imágenes; pega el texto.",invalid_key:"Tu clave de Claude no es válida. Revísala en Conectar Claude.",no_credit:"Tu cuenta de API de Claude no tiene saldo. Agrega saldo en console.anthropic.com → Billing.",overloaded:"Claude está saturado en este momento. Intenta en un minuto.",network:"Sin conexión a internet. Revisa tu señal e intenta de nuevo.",bad_model:"El modelo de Claude no está disponible para tu clave.",api_error:"Claude devolvió un error. Intenta de nuevo."};
 const errMsg = c => ERR[c] || "Se interrumpió la conexión. Intenta de nuevo.";
 function hardFail(c){ if(["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(c)){ sample=null; setAiState(); } }
 
@@ -752,7 +753,7 @@ function extChoose(){
   <div class="pad form"><div class="row extbtns">
     <button type="button" class="btn primary" data-act="extAi" data-ai="claude">${last==="claude"?"★ ":""}Generar con Claude</button>
     <button type="button" class="btn ink" data-act="extAi" data-ai="chatgpt">${last==="chatgpt"?"★ ":""}Generar con ChatGPT</button>
-  </div></div>`);
+  </div>${inClaude?"":`<button type="button" class="btn ghost" data-act="apiKey" style="width:100%">Mejor: generar aquí mismo con Claude →</button>`}</div>`);
 }
 async function extSave(){
   const t=($("#extText")?.value||"").trim(); if(!t) return toast("Pega primero la respuesta.");
@@ -926,7 +927,7 @@ function fixOutHTML(){
 }
 async function runFix(){
   const f=S.fix;
-  if(!sample){ toast("La IA no está disponible en esta vista."); return; }
+  if(!sample){ toast("Primero toca Conectar Claude."); apiKeyModal(); return; }
   if(!f.trabajo.trim() && !f.img){ toast("Pega el trabajo o sube una foto."); return; }
   const [gid,sid]=(f.alumno||"|").split("|"); const g=groupById(gid); const stu=g&&(g.students||[]).find(s=>s.id===sid);
   S.fixBusy=true; S.fixOut=null; if(S.view==="corregir") render();
@@ -944,7 +945,7 @@ function fixAsMd(o){ return `# Retroalimentación${o.alumnoName?": "+o.alumnoNam
 /* ================= asistente ================= */
 const CHAT_RULES = ()=> ctxLine()+"\n\nActúa como colega pedagógico de Mr. Escudero: práctico, concreto y breve. Da ejemplos listos para usar en el aula. Responde en español de México y en Markdown, sin preámbulos.";
 async function sendChat(text){
-  text=text.trim(); if(!text) return; if(!sample){ toast("La IA no está disponible en esta vista."); return; }
+  text=text.trim(); if(!text) return; if(!sample){ toast("Primero toca Conectar Claude."); apiKeyModal(); return; }
   S.chat.push({role:"user",content:text}); S.chat.push({role:"assistant",content:""}); S.chatBusy=true; render();
   ctl=new AbortController(); const sig=ctl.signal; const last=S.chat[S.chat.length-1]; let wait="_Pensando…_";
   const paint=()=>{ const bs=document.querySelectorAll("#chatlog .msg.ai .doc"); const b=bs[bs.length-1]; if(b){ b.innerHTML=md(last.content||wait); } };
@@ -1480,6 +1481,8 @@ const ACT = {
   stop:()=>ctl&&ctl.abort(),
   genSave:()=>saveGen(),
   extAi:b=>extOpen(b.dataset.ai),
+  apiKey:()=>apiKeyModal(),
+  apiKeyDel:()=>{ ls.set("apiKey",""); sample=null; closeModal(); setAiState(); render(); toast("Clave eliminada de este dispositivo"); },
   extPaste:()=>extPasteModal(S.extAi,""),
   extCopy:()=>{ if(extReady()) copyText(extPrompt()); },
   extClip:async()=>{ try{ const t=await navigator.clipboard.readText(); if(t){ $("#extText").value=t; toast("Pegado"); } else toast("El portapapeles está vacío."); }catch(_){ toast("Mantén presionado el cuadro y elige Pegar."); $("#extText")?.focus(); } },
@@ -1542,6 +1545,7 @@ document.addEventListener("submit",e=>{
   const f=e.target; e.preventDefault();
   if(f.id==="genForm") generate();
   else if(f.id==="extForm") extSave();
+  else if(f.id==="apiForm") apiKeySave();
   else if(f.id==="addStu"){ const n=$("#stuName").value.trim(); if(n) addStudents([n],false).then(()=>$("#stuName")?.focus()); }
   else if(f.id==="addCol"){ const n=$("#colName").value.trim(), w=+$("#colW").value||0; if(!n) return toast("Escribe el nombre del rubro."); const g=currentGroup(); const gr=JSON.parse(JSON.stringify(gradesFor(g.id))); gr.cols.push({id:"c"+uid().slice(0,6),name:n,w}); put("grades",gr).then(render); }
   else if(f.id==="ngForm"){ const n=$("#ng_name").value.trim(); if(!n) return; const g={id:"g"+uid().slice(0,10),name:n,grade:+$("#ng_grade").value||null,subject:$("#ng_subject").value.trim(),school:$("#ng_school").value.trim(),order:S.groups.length+1,students:[]}; put("groups",g).then(()=>{ closeModal(); S.gSel=g.id; S.gTab="alumnos"; go("grupos"); }); }
@@ -1589,10 +1593,78 @@ document.addEventListener("keydown",e=>{
   if(e.target.id==="chatIn" && e.key==="Enter" && !e.shiftKey){ e.preventDefault(); if(!S.chatBusy) sendChat(e.target.value); }
 });
 
+/* ================= Claude por API (versión de GitHub) =================
+   La clave se guarda solo en este dispositivo (localStorage). Nunca va en el código. */
+const API_MODEL="claude-sonnet-5-5";
+async function blobToImg(b){
+  const bmp=await createImageBitmap(b); const k=Math.min(1,1568/Math.max(bmp.width,bmp.height));
+  const c=document.createElement("canvas"); c.width=Math.round(bmp.width*k); c.height=Math.round(bmp.height*k);
+  c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+  const url=c.toDataURL("image/jpeg",0.85);
+  return {type:"image",source:{type:"base64",media_type:"image/jpeg",data:url.split(",")[1]}};
+}
+function apiSample(key){
+  async function call(input,opts={}){
+    let msgs=(typeof input==="string"?[{role:"user",content:input}]:input.map(m=>({role:m.role,content:String(m.content||"")}))).filter(m=>m.content);
+    const merged=[]; for(const m of msgs){ const l=merged[merged.length-1]; if(l&&l.role===m.role) l.content+="\n\n"+m.content; else merged.push({...m}); }
+    msgs=merged; if(!msgs.length||msgs[0].role!=="user") msgs.unshift({role:"user",content:"Hola"});
+    if(msgs[msgs.length-1].role!=="user") msgs.push({role:"user",content:"Continúa."});
+    const imgs=opts.images?(Array.isArray(opts.images)?opts.images:[opts.images]):[];
+    if(imgs.length){ let blocks=[]; try{ blocks=await Promise.all(imgs.slice(0,8).map(blobToImg)); }catch(_){ throw {code:"image_rejected"}; } const l=msgs[msgs.length-1]; l.content=[...blocks,{type:"text",text:l.content}]; }
+    let res;
+    try{ res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal:opts.signal,headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:API_MODEL,max_tokens:opts.max||8000,stream:true,messages:msgs})}); }
+    catch(e){ throw {code:e&&e.name==="AbortError"?"cancelled":"network"}; }
+    if(!res.ok){ let m=""; try{ m=((await res.json()).error||{}).message||""; }catch(_){}
+      const s=res.status; throw {code: s===401||s===403?"invalid_key": s===429?"rate_limited": /credit|balance|billing/i.test(m)?"no_credit": /too long|too large|maximum/i.test(m)?"prompt_too_large": s===404?"bad_model": s>=500?"overloaded":"api_error", detail:m}; }
+    const rd=res.body.getReader(), dec=new TextDecoder(); let buf="", text="", stop="";
+    try{
+      for(;;){ const {value,done}=await rd.read(); if(done) break; buf+=dec.decode(value,{stream:true});
+        let i; while((i=buf.indexOf("\n"))>=0){ const line=buf.slice(0,i).trim(); buf=buf.slice(i+1);
+          if(!line.startsWith("data:")) continue; let ev; try{ ev=JSON.parse(line.slice(5)); }catch(_){ continue; }
+          if(ev.type==="content_block_delta"&&ev.delta&&ev.delta.type==="text_delta"){ text+=ev.delta.text; opts.onText&&opts.onText({text}); }
+          else if(ev.type==="message_delta"&&ev.delta) stop=ev.delta.stop_reason||stop;
+          else if(ev.type==="error") throw {code:/overload/i.test((ev.error||{}).type||"")?"overloaded":"api_error",text};
+        } }
+    }catch(e){ if(e&&e.code) throw e; throw {code:e&&e.name==="AbortError"?"cancelled":"network",text}; }
+    if(!text.trim()) throw {code:stop==="refusal"?"refused":"empty_completion"};
+    return {text,truncated:stop==="max_tokens"};
+  }
+  call.json=async(input,opts={})=>{
+    const r=await call(input+"\n\nResponde ÚNICAMENTE con el JSON válido, sin texto antes ni después y sin bloques de código.",opts);
+    let t=r.text.replace(/^\s*```(?:json)?/i,"").replace(/```\s*$/,""); const a=t.indexOf("{"), b=t.lastIndexOf("}");
+    try{ return JSON.parse(a>=0&&b>a?t.slice(a,b+1):t); }catch(_){ throw {code:"invalid_json"}; }
+  };
+  call.limits=async()=>({images:{maxCount:8}});
+  call.api=true;
+  return call;
+}
+function apiKeyModal(){
+  const has=!!ls.get("apiKey","");
+  modal(`<div class="mhead"><div><h2>Generar aquí mismo con Claude</h2><div class="muted" style="font-size:13px">Conecta tu clave de API de Claude una sola vez. Se guarda solo en este dispositivo; nunca se sube a GitHub.</div></div><button class="btn ghost" data-act="closeModal" aria-label="Cerrar">✕</button></div>
+  <form class="pad form" id="apiForm">
+    <ol class="muted" style="font-size:14px;margin:0;padding-left:20px;line-height:1.55">
+      <li>Entra a <b>console.anthropic.com</b> e inicia sesión (es distinta a tu suscripción de Claude).</li>
+      <li>En <b>Billing</b> agrega saldo (con $5 USD alcanza para mucho material).</li>
+      <li>En <b>API Keys</b> toca <b>Create Key</b>, cópiala y pégala aquí.</li>
+    </ol>
+    <label class="f">Clave de API<input class="in" id="apiKeyIn" type="password" autocomplete="off" placeholder="${has?"•••• guardada ••••":"sk-ant-…"}"></label>
+    <div class="row" style="justify-content:space-between">${has?'<button type="button" class="btn" data-act="apiKeyDel">Quitar clave</button>':"<span></span>"}<button type="submit" class="btn primary">Guardar y probar</button></div>
+  </form>`);
+}
+async function apiKeySave(){
+  const k=($("#apiKeyIn")?.value||"").trim();
+  if(!k){ if(ls.get("apiKey","")){ closeModal(); return; } return toast("Pega tu clave primero."); }
+  if(!/^sk-ant-/.test(k)) return toast("La clave debe empezar con sk-ant-");
+  toast("Probando conexión…");
+  try{ await apiSample(k)("Responde solo con la palabra: listo",{max:10}); }
+  catch(e){ return toast(errMsg(e&&e.code)); }
+  ls.set("apiKey",k); sample=apiSample(k); S.canImg=true; S.imgMax=8; closeModal(); setAiState(); render(); toast("¡Claude conectado! Ya puedes generar aquí.");
+}
+
 /* ================= capacidades ================= */
 function setAiState(){
-  const el=$("#aiState"); if(el) el.innerHTML = sample? '<span style="color:var(--leaf)">● IA conectada</span>' : '<span>○ IA no disponible aquí</span>';
-  const h=$("#aiHint"); if(h) h.textContent = sample?"Generado por Claude con tu cuenta.":"Generar abre Claude o ChatGPT con tu instrucción lista.";
+  const el=$("#aiState"); if(el) el.innerHTML = sample? '<span style="color:var(--leaf)">● Claude conectado</span>' : '<button class="btn sm" data-act="apiKey" style="margin-top:6px">Conectar Claude</button>';
+  const h=$("#aiHint"); if(h) h.textContent = sample?(sample.api?"Claude genera aquí mismo con tu clave.":"Generado por Claude con tu cuenta."):"Generar abre Claude o ChatGPT. Para generar aquí mismo, toca Conectar Claude.";
 }
 localLoad(); render();
 const C = window.claude;
@@ -1601,7 +1673,7 @@ if(C && C.use){
   C.use("sample").then(s=>{ sample=s||null; setAiState(); if(S.view==="corregir") render(); if(s&&s.limits) s.limits().then(l=>{ const w=$("#fx_imgWrap"); S.canImg=!!(l&&l.images); S.imgMax=l&&l.images?l.images.maxCount:0; if(w) w.hidden=!S.canImg; }).catch(()=>{}); }).catch(()=>setAiState());
   C.use("downloads").then(d=>{ downloads=d||null; }).catch(()=>{});
   C.use("assets").then(a=>{ assets=a||null; if(S.view==="archivos") render(); refreshUsage(); }).catch(()=>{});
-} else { setAiState(); }
+} else { const k=ls.get("apiKey",""); if(k){ sample=apiSample(k); S.canImg=true; S.imgMax=8; } setAiState(); }
 })();
 </script>
 
