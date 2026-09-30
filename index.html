@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#FF7C40">
+<meta name="theme-color" content="#17223A">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Aula Zorro">
+<meta name="apple-mobile-web-app-title" content="Mr. Escudero">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon-192.png">
+<link rel="icon" href="favicon.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 </head>
 <body>
-<title>Aula Zorro</title>
+<title>Mr. Escudero · Classroom</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -333,8 +334,8 @@ table.grades input:focus{outline:none;border-color:var(--fox)}
 <div class="app">
   <nav class="nav" aria-label="Secciones">
     <div class="brand">
-      <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="10" fill="var(--fox)"/><path d="M8 10l6 5h8l6-5-2 11c-1 5-5 8-8 8s-7-3-8-8z" fill="var(--fox-ink)" opacity=".95"/><circle cx="14.5" cy="20" r="1.6" fill="var(--fox)"/><circle cx="21.5" cy="20" r="1.6" fill="var(--fox)"/><path d="M16.5 24h3l-1.5 1.6z" fill="var(--fox)"/></svg>
-      <div><b>Aula Zorro</b><small>ESF 22 · Go Zorros!</small></div>
+      <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="10" fill="#17223A"/><rect x="5" y="7" width="26" height="19" rx="2.5" fill="#C98A55"/><rect x="6.5" y="8.5" width="23" height="16" rx="1" fill="#1F5C3D"/><path d="M16 11.5H10.5V21.5H16M10.5 16.5H15" fill="none" stroke="#F4F5EF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 16.5l3 3 5-7.5" fill="none" stroke="#FF7C40" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 26l-2 5M24 26l2 5" stroke="#C98A55" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <div><b>Mr. Escudero</b><small>Classroom · ESF 22</small></div>
     </div>
     <button data-go="inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Inicio</span></button>
     <button data-go="crear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg><span>Crear</span></button>
@@ -1230,7 +1231,7 @@ async function runPrint(){
   p.busy=true; prSync(); const st=$("#prStatus"); const say=m=>{ if(st&&st.isConnected) st.innerHTML=`<span class="pulse"></span>${esc(m)}`; };
   try{ const r=await buildPrintPdf(items,p.cover,say);
     if(st&&st.isConnected) st.innerHTML=`<span style="color:var(--leaf)">● Listo: ${r.pages} páginas${r.skipped.length?` · ${r.skipped.length} para imprimir desde su programa (van al final)`:""}</span>`;
-    await offerFile("Imprimir_Aula_Zorro_"+todayISO()+".pdf",new Blob([r.bytes],{type:"application/pdf"}));
+    await offerFile("Imprimir_MrEscudero_Classroom_"+todayISO()+".pdf",new Blob([r.bytes],{type:"application/pdf"}));
   }catch(e){ if(st&&st.isConnected) st.innerHTML=`<span style="color:var(--bad)">${e&&e.message==="lib"?"No se pudo cargar el generador de PDF. Revisa tu conexión.":"No se pudo preparar el PDF."}</span>`; }
   finally{ p.busy=false; prSync(); }
 }
@@ -1245,7 +1246,7 @@ async function zipOriginals(items,onMsg){
     }catch(e){ fail.push(x.name); } }
   if(!n) throw new Error("vacío");
   const zb=await z.generateAsync({type:"blob"});
-  await offerFile("Archivos_Aula_Zorro_"+todayISO()+".zip",zb);
+  await offerFile("Archivos_MrEscudero_Classroom_"+todayISO()+".zip",zb);
   return fail;
 }
 

@@ -1,15 +1,29 @@
 {
-  "name": "Aula Zorro",
-  "short_name": "Aula Zorro",
-  "description": "Plataforma docente · Mr. Escudero · ESF 22",
+  "name": "Mr. Escudero · Classroom",
+  "short_name": "Mr. Escudero",
+  "description": "Classroom · Plataforma docente · ESF 22",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#FFFFFF",
-  "theme_color": "#FF7C40",
+  "theme_color": "#17223A",
   "lang": "es",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
   ]
 }

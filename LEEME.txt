@@ -1,4 +1,4 @@
-AULA ZORRO · Plataforma docente · Mr. Escudero · ESF 22
+MR. ESCUDERO · CLASSROOM · Plataforma docente · Mr. Escudero · ESF 22
 
 CONTENIDO
 - index.html : la app completa (un solo archivo, sin instalación).

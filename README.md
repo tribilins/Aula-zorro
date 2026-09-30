@@ -1,4 +1,4 @@
-# 🦊 Aula Zorro
+# Mr. Escudero · Classroom
 
 Plataforma docente · Mr. Escudero · Escuela Secundaria Federal No. 22 · Cd. Juárez, Chihuahua
 
@@ -10,7 +10,7 @@ Plataforma docente · Mr. Escudero · Escuela Secundaria Federal No. 22 · Cd. J
 ## Cómo usarla en el iPhone
 1. Abre el enlace de la app en **Safari**.
 2. Toca **Compartir → Agregar a inicio**.
-3. Queda como app con el ícono del zorro y abre aunque no haya internet.
+3. Queda como app con el ícono de la pizarra y abre aunque no haya internet.
 
 ## Importante
 - Los datos (alumnos, asistencia, calificaciones, archivos) se guardan **solo en el navegador del equipo** donde usas la app, no en este repositorio.
