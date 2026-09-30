@@ -328,6 +328,10 @@ table.grades input:focus{outline:none;border-color:var(--fox)}
 .stage .simg{max-width:100%;max-height:calc(100vh - 160px);margin:0 auto;display:block;object-fit:contain}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-weight:700;font-size:14px;z-index:90;box-shadow:0 10px 30px rgba(0,0,0,.3);max-width:calc(100% - 32px)}
 @media (max-width:820px){.toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
+[hidden]{display:none!important}
+.extai{border-style:dashed}
+.extbtns .btn{flex:1 1 auto}
+@media (max-width:560px){.extbtns .btn{flex:1 1 100%}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -551,9 +555,18 @@ crear(){
       <form class="card pad form" id="genForm">
         ${srcBoxHTML("src")}
         <div class="grid2">${t.fields.map(fieldHTML).join("")}</div>
-        <div class="row" style="justify-content:space-between"><span class="muted" style="font-size:13px" id="aiHint">${sample?"Generado por Claude con tu cuenta.":"La IA se activa cuando la página conecta con Claude."}</span>
+        <div class="row" style="justify-content:space-between"><span class="muted" style="font-size:13px" id="aiHint">${sample?"Generado por Claude con tu cuenta.":"Aquí la IA integrada no está activa: usa los botones de Claude o ChatGPT de abajo."}</span>
           <div class="row"><button type="button" class="btn" data-act="stop" id="stopBtn" hidden>Detener</button><button type="submit" class="btn primary" id="genBtn">Generar</button></div></div>
       </form>
+      <section class="card pad form extai" aria-labelledby="extT">
+        <div><b id="extT">Buscar y generar con Claude o ChatGPT</b><div class="muted" style="font-size:13px;margin-top:2px">Usa los datos de arriba. Se abre el chat con tu instrucción lista, busca en internet si hace falta, y luego pegas la respuesta aquí para guardarla en tu biblioteca.</div></div>
+        <div class="row extbtns">
+          <button type="button" class="btn primary" data-act="extAi" data-ai="claude">Generar con Claude</button>
+          <button type="button" class="btn ink" data-act="extAi" data-ai="chatgpt">Generar con ChatGPT</button>
+          <button type="button" class="btn" data-act="extPaste">Pegar resultado</button>
+          <button type="button" class="btn ghost" data-act="extCopy">Copiar instrucción</button>
+        </div>
+      </section>
       <div id="genOut"></div>
     </div>
   </div>`;
@@ -692,6 +705,53 @@ function validQuiz(z){
 const ERR = {not_granted:"No autorizaste que esta página use Claude. Recarga para volver a intentarlo.",sampling_disabled:"Claude no está disponible para esta cuenta.",rate_limited:"Demasiadas solicitudes seguidas. Espera un momento e intenta de nuevo.",session_expired:"Tu sesión expiró. Vuelve a iniciar sesión.",refused:"Claude no pudo generar este contenido. Cambia el tema o las indicaciones.",empty_completion:"No llegó respuesta. Intenta con indicaciones más cortas.",invalid_json:"El examen llegó con formato incompleto. Intenta de nuevo o pide menos preguntas.",prompt_too_large:"El texto es demasiado largo. Recórtalo.",image_rejected:"No se pudo leer la imagen. Prueba con otra foto (JPG o PNG).",images_unavailable:"Esta vista no admite imágenes; pega el texto."};
 const errMsg = c => ERR[c] || "Se interrumpió la conexión. Intenta de nuevo.";
 function hardFail(c){ if(["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(c)){ sample=null; setAiState(); } }
+
+/* ---------- IA externa: Claude / ChatGPT en su propia app ---------- */
+const EXT_AI = {
+  claude:{name:"Claude", url:q=>"https://claude.ai/new?q="+encodeURIComponent(q), home:"https://claude.ai/new"},
+  chatgpt:{name:"ChatGPT", url:q=>"https://chatgpt.com/?q="+encodeURIComponent(q), home:"https://chatgpt.com/"}
+};
+function examMdPrompt(){
+  const f=S.form, n=Math.max(3,Math.min(30,+f.numQ||10));
+  return `${ctxLine()}\n\nTEMA: ${temaTxt()}\nNIVEL MCER: ${f.nivel}${f.pda?"\nPDA / APRENDIZAJE: "+f.pda:""}${f.notas?"\nINDICACIONES DEL DOCENTE: "+f.notas:""}\n\nTAREA: Crea un examen para imprimir de ${n} preguntas de opción múltiple (a, b, c, d; una sola correcta), con dificultad progresiva, distractores plausibles y la respuesta correcta en posiciones variadas. Incluye encabezado (Nombre, Grupo, Fecha) e instrucciones. Al final agrega "## Clave de respuestas (docente)" en una tabla # · Respuesta · Explicación breve. ${idiomaRule()}\n${FMT}`;
+}
+function extPrompt(){
+  let p = S.tool==="examen" ? examMdPrompt() : buildPrompt(S.tool);
+  if(S.src.length) p += `\n\nMATERIAL DE APOYO: Voy a adjuntar en este chat: ${srcNames(S.src)}. Básate en ese material; si aún no lo ves, pídemelo antes de empezar.`;
+  p += "\n\nBÚSQUEDA: Si te ayuda, busca en internet información actual y confiable (SEP, NEM, sitios educativos reconocidos) y agrega al final una sección \"## Fuentes\" con los enlaces que usaste. No inventes fuentes.";
+  p += "\n\nEntrega todo el material en un solo mensaje, listo para copiar.";
+  return p;
+}
+function extReady(){
+  const t=S.tool, f=S.form;
+  if(!f.tema.trim() && (!S.src.length || t==="libre" || t==="padres")){ toast(t==="libre"?"Escribe qué necesitas.":"Escribe el tema primero."); $('[data-f="tema"]')?.focus(); return false; }
+  return true;
+}
+function extOpen(ai){
+  if(!extReady()) return;
+  const A=EXT_AI[ai], p=extPrompt();
+  S.extAi=ai;
+  try{ navigator.clipboard && navigator.clipboard.writeText(p).catch(()=>{}); }catch(_){}
+  const u=A.url(p), long=u.length>7000;
+  window.open(long?A.home:u,"_blank","noopener");
+  extPasteModal(ai, long?`La instrucción es larga: ya está copiada, pégala en ${A.name} y envíala.`:"");
+  toast(long?"Instrucción copiada":`Abriendo ${A.name}…`);
+}
+function extPasteModal(ai,msg){
+  const A=EXT_AI[ai]||null;
+  modal(`<div class="mhead"><div><h2>Pegar resultado${A?" de "+A.name:""}</h2><div class="muted" style="font-size:13px">${msg?esc(msg)+" ":""}Cuando ${A?esc(A.name):"la IA"} termine, toca <b>Copiar</b> en su respuesta, regresa aquí y pégala.</div></div><button class="btn ghost" data-act="closeModal" aria-label="Cerrar">✕</button></div>
+  <form class="pad form" id="extForm">
+    <textarea class="in" id="extText" style="min-height:220px" placeholder="Pega aquí la respuesta completa"></textarea>
+    <div class="row" style="justify-content:space-between"><button type="button" class="btn" data-act="extClip">Pegar del portapapeles</button><button type="submit" class="btn primary">Guardar en biblioteca</button></div>
+  </form>`);
+}
+async function extSave(){
+  const t=($("#extText")?.value||"").trim(); if(!t) return toast("Pega primero la respuesta.");
+  const f=S.form, g=groupById(f.grupo), A=EXT_AI[S.extAi];
+  const text = /^#\s/m.test(t) ? t : "# "+(TYPES[S.tool].name+": "+(f.tema.trim()||"Material")).slice(0,100)+"\n\n"+t;
+  S.gen={tool:S.tool,text,quiz:null,busy:false,err:"",note:A?"Generado con "+A.name+".":"",savedId:null,topic:(f.tema.trim()||srcNames(S.src)).slice(0,140),groupId:f.grupo,groupName:g?.name||"",subject:g?.subject||f.materia,chars:text.length,reading:""};
+  closeModal(); if(S.view!=="crear") go("crear"); await saveGen();
+}
 
 /* ---------- generar ---------- */
 async function generate(){
@@ -1410,6 +1470,10 @@ const ACT = {
   tool:b=>{ if(S.gen&&S.gen.busy) return toast("Espera a que termine o detén la generación."); S.tool=b.dataset.tool; ls.set("tool",S.tool); if(EX_Q[S.tool]) S.form.numQ=EX_Q[S.tool]; S.gen=null; render(); },
   stop:()=>ctl&&ctl.abort(),
   genSave:()=>saveGen(),
+  extAi:b=>extOpen(b.dataset.ai),
+  extPaste:()=>extPasteModal(S.extAi,""),
+  extCopy:()=>{ if(extReady()) copyText(extPrompt()); },
+  extClip:async()=>{ try{ const t=await navigator.clipboard.readText(); if(t){ $("#extText").value=t; toast("Pegado"); } else toast("El portapapeles está vacío."); }catch(_){ toast("Mantén presionado el cuadro y elige Pegar."); $("#extText")?.focus(); } },
   genCopy:()=>S.gen&&copyText(S.gen.text),
   genDl:b=>S.gen&&exportMat(S.gen.quiz?S.gen.quiz.title:titleFrom(S.gen.text,TYPES[S.gen.tool].name),S.gen.text,b.dataset.ext),
   genStage:()=>{ const g=S.gen; if(!g) return; if(g.quiz) openStage("quiz",{quiz:g.quiz}); else openStage("text",{mat:{title:titleFrom(g.text,"Material"),content:g.text}}); },
@@ -1468,6 +1532,7 @@ function setAtt(a){ const i=S.attendance.findIndex(x=>x.id===a.id); if(i>=0) S.a
 document.addEventListener("submit",e=>{
   const f=e.target; e.preventDefault();
   if(f.id==="genForm") generate();
+  else if(f.id==="extForm") extSave();
   else if(f.id==="addStu"){ const n=$("#stuName").value.trim(); if(n) addStudents([n],false).then(()=>$("#stuName")?.focus()); }
   else if(f.id==="addCol"){ const n=$("#colName").value.trim(), w=+$("#colW").value||0; if(!n) return toast("Escribe el nombre del rubro."); const g=currentGroup(); const gr=JSON.parse(JSON.stringify(gradesFor(g.id))); gr.cols.push({id:"c"+uid().slice(0,6),name:n,w}); put("grades",gr).then(render); }
   else if(f.id==="ngForm"){ const n=$("#ng_name").value.trim(); if(!n) return; const g={id:"g"+uid().slice(0,10),name:n,grade:+$("#ng_grade").value||null,subject:$("#ng_subject").value.trim(),school:$("#ng_school").value.trim(),order:S.groups.length+1,students:[]}; put("groups",g).then(()=>{ closeModal(); S.gSel=g.id; S.gTab="alumnos"; go("grupos"); }); }
@@ -1518,7 +1583,7 @@ document.addEventListener("keydown",e=>{
 /* ================= capacidades ================= */
 function setAiState(){
   const el=$("#aiState"); if(el) el.innerHTML = sample? '<span style="color:var(--leaf)">● IA conectada</span>' : '<span>○ IA no disponible aquí</span>';
-  const h=$("#aiHint"); if(h) h.textContent = sample?"Generado por Claude con tu cuenta.":"La IA no está disponible en esta vista.";
+  const h=$("#aiHint"); if(h) h.textContent = sample?"Generado por Claude con tu cuenta.":"Aquí la IA integrada no está activa: usa los botones de Claude o ChatGPT de abajo.";
 }
 localLoad(); render();
 const C = window.claude;
