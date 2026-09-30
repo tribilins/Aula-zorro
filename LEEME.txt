@@ -1,0 +1,19 @@
+AULA ZORRO · Plataforma docente · Mr. Escudero · ESF 22
+
+CONTENIDO
+- index.html : la app completa (un solo archivo, sin instalación).
+
+CÓMO ABRIRLA
+- Doble clic en index.html (Chrome o Edge recomendados). Necesita internet
+  para cargar los lectores de PDF, Word, Excel y PowerPoint.
+
+QUÉ FUNCIONA FUERA DE CLAUDE
+- Archivos: subir cualquier formato, vista previa, proyectar PDF e imágenes,
+  "Imprimir todo" (genera un PDF con portada e índice) y descargar originales (.zip).
+  Los archivos se guardan en el navegador de ESE equipo.
+- Grupos, pase de lista, calificaciones, biblioteca, ruleta, equipos,
+  temporizador y Modo clase.
+
+QUÉ SOLO FUNCIONA DENTRO DE CLAUDE (versión publicada)
+- Crear con IA, "Crear con IA desde este archivo", corrector y asistente.
+- Guardar archivos en la nube y verlos desde cualquier dispositivo.
