@@ -1,5 +1,5 @@
 // Mr. Escudero Classroom · service worker: la app abre aunque no haya internet.
-const CACHE = "mre-classroom-v3";
+const CACHE = "mre-classroom-v4";
 const CORE = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./favicon.png", "./icon.svg"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE))); self.skipWaiting(); });
 self.addEventListener("activate", e => {

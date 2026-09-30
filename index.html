@@ -420,7 +420,7 @@ const EX_Q = {examen:10, hoja:8, vocab:15};
 const S = {
   materials:[], groups:[], attendance:[], grades:[], files:[],
   up:[], upCat: ls.get("upCat","Planeaciones"), upGrp:"", fq:"", fcat:"all", fgrp:"", fselMode:false, fsel:new Set(), usage:null,
-  src: ls.get("src",[]), chatSrc: [], pr:null, canImg:false, imgMax:0,
+  src: ls.get("src",[]), extAi: ls.get("extAi",""), chatSrc: [], pr:null, canImg:false, imgMax:0,
   loaded:false, mode:"local",
   view: ls.get("view","inicio"),
   tool: ls.get("tool","plan"),
@@ -555,7 +555,7 @@ crear(){
       <form class="card pad form" id="genForm">
         ${srcBoxHTML("src")}
         <div class="grid2">${t.fields.map(fieldHTML).join("")}</div>
-        <div class="row" style="justify-content:space-between"><span class="muted" style="font-size:13px" id="aiHint">${sample?"Generado por Claude con tu cuenta.":"Aquí la IA integrada no está activa: usa los botones de Claude o ChatGPT de abajo."}</span>
+        <div class="row" style="justify-content:space-between"><span class="muted" style="font-size:13px" id="aiHint">${sample?"Generado por Claude con tu cuenta.":"Generar abre Claude o ChatGPT con tu instrucción lista."}</span>
           <div class="row"><button type="button" class="btn" data-act="stop" id="stopBtn" hidden>Detener</button><button type="submit" class="btn primary" id="genBtn">Generar</button></div></div>
       </form>
       <section class="card pad form extai" aria-labelledby="extT">
@@ -730,7 +730,7 @@ function extReady(){
 function extOpen(ai){
   if(!extReady()) return;
   const A=EXT_AI[ai], p=extPrompt();
-  S.extAi=ai;
+  S.extAi=ai; ls.set("extAi",ai);
   try{ navigator.clipboard && navigator.clipboard.writeText(p).catch(()=>{}); }catch(_){}
   const u=A.url(p), long=u.length>7000;
   window.open(long?A.home:u,"_blank","noopener");
@@ -745,6 +745,15 @@ function extPasteModal(ai,msg){
     <div class="row" style="justify-content:space-between"><button type="button" class="btn" data-act="extClip">Pegar del portapapeles</button><button type="submit" class="btn primary">Guardar en biblioteca</button></div>
   </form>`);
 }
+function extChoose(){
+  if(!extReady()) return;
+  const last=S.extAi;
+  modal(`<div class="mhead"><div><h2>¿Con cuál IA generamos?</h2><div class="muted" style="font-size:13px">Se abre con tu instrucción lista. Cuando termine, copia la respuesta y pégala aquí para guardarla.</div></div><button class="btn ghost" data-act="closeModal" aria-label="Cerrar">✕</button></div>
+  <div class="pad form"><div class="row extbtns">
+    <button type="button" class="btn primary" data-act="extAi" data-ai="claude">${last==="claude"?"★ ":""}Generar con Claude</button>
+    <button type="button" class="btn ink" data-act="extAi" data-ai="chatgpt">${last==="chatgpt"?"★ ":""}Generar con ChatGPT</button>
+  </div></div>`);
+}
 async function extSave(){
   const t=($("#extText")?.value||"").trim(); if(!t) return toast("Pega primero la respuesta.");
   const f=S.form, g=groupById(f.grupo), A=EXT_AI[S.extAi];
@@ -755,7 +764,7 @@ async function extSave(){
 
 /* ---------- generar ---------- */
 async function generate(){
-  if(!sample){ toast("La IA no está disponible en esta vista."); return; }
+  if(!sample){ extChoose(); return; }
   const t=S.tool, f=S.form;
   if(!f.tema.trim() && (!S.src.length || t==="libre" || t==="padres")){ toast(t==="libre"?"Escribe qué necesitas.":"Escribe el tema primero."); $('[data-f="tema"]')?.focus(); return; }
   const g=groupById(f.grupo);
@@ -1583,7 +1592,7 @@ document.addEventListener("keydown",e=>{
 /* ================= capacidades ================= */
 function setAiState(){
   const el=$("#aiState"); if(el) el.innerHTML = sample? '<span style="color:var(--leaf)">● IA conectada</span>' : '<span>○ IA no disponible aquí</span>';
-  const h=$("#aiHint"); if(h) h.textContent = sample?"Generado por Claude con tu cuenta.":"Aquí la IA integrada no está activa: usa los botones de Claude o ChatGPT de abajo.";
+  const h=$("#aiHint"); if(h) h.textContent = sample?"Generado por Claude con tu cuenta.":"Generar abre Claude o ChatGPT con tu instrucción lista.";
 }
 localLoad(); render();
 const C = window.claude;
